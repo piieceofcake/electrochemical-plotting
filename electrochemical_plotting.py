@@ -17,9 +17,13 @@ This code is for plotting .csv and .mpt files extracted from Neware and Biologic
 Change the parameters underneath to fit your data
 
 GitHub 1st commit 13.12.2024
+    update 1: 22.09.2025
 
 Contributors:
 	Amalie Skurtveit (amalie.skurtveit@kjemi.uio.no)
+    Casper Skautvedt (casper.skautvedt@smn.uio.no)
+    Erlend Tiberg North (e.t.north@smn.uio.no)
+    Magnus Lid Andresen
 """
 
 ### Standard format of figures ##
@@ -57,11 +61,13 @@ COUNT_ION       = False        # Would you like to calculate how many IONS are t
 
 CYCLES          = [1,2,3,5,10,20,50,100]
 CPC_MAX         = 500        # Right limit of x-axis in capacity per cycle plot (CPC)
-GC_PLOT_RIGHT   = 800       # Right limit of x-axis in GC plot
-LINEWIDTH       = 2        # Thickness of line in GC plot
+GC_PLOT_RIGHT   = 800        # Right limit of x-axis in GC plot
+LINEWIDTH       = 2          # Thickness of line in GC plot
 DPI             = 300        # dpi of the figure 
+CO_BOTTOM       = 70         # Coulombinc efficiency (CO) plot minimum value on y-axis (should be as high as possible)
+CO_TOP          = 101        # Coulombinc efficiency (CO) plot maximum value on y-axis (101, 105 is typically OK values)
 
-ntick           = 4          #How many tick marks do you want. 4 Gives 5 tick marks. Ticks are the number marks on the axis.
+ntick           = 4          # How many tick marks do you want. 4 Gives 5 tick marks. Ticks are the number marks on the axis.
 
 
 
@@ -71,14 +77,16 @@ if not os.path.exists(DEST_FOLDER):
     os.makedirs(DEST_FOLDER)
 
 
-
+# Making the color palette for plotting GC curves
+# You can change colors to whatever you would like as long as you have a hex code '#000000'
 uio_colors = ["#86A4F7", "#2EC483", "#FEA11B", "#FB6666", '#AB6548', '#509D96', '#B54477', '#5A89D4', '#84BC57', '#D06C8F', '#2C6D4E']
-mpl.rcParams['axes.prop_cycle'] = mpl.cycler(color=uio_colors)
+# Cycling through the colors automatically
+mpl.rcParams['axes.prop_cycle'] = mpl.cycler(color=uio_colors) 
 cycle = [x - 1 for x in CYCLES]
     
 
-colors = uio_colors
-cpc_color = "k"
+colors = uio_colors 
+cpc_color = "k" # "k" = black, other colors: https://matplotlib.org/stable/gallery/color/named_colors.html
 
 
 def read_data(file):
@@ -94,6 +102,8 @@ def read_data(file):
                 
     elif datatype == "Neware2":
         df = fun.file_to_df(file)
+        if CATHODE:
+            df = fun.replace_cycle_index_N2(df)
         GC_cpc_plot_N2(df)
 
        
@@ -155,85 +165,50 @@ def GC_cpc_plot_N2(df):
     
 
     fig, (gc, cpc) = plt.subplots(1, 2, constrained_layout=True)
-
+    step_dictionary = fun.neware_step_counter(df) #not necessary
+    
     #######  GC  #######
+    # Splitting the dataframe into cycles and plotting only these cycles
     for index in CYCLES:
-        df_cycle = df.loc[df["Cycle Index"] == index]
-        
-        if index > 3:
+        if CATHODE: #update 22.09.2025, fixing the cathode bug
+            df_cycle = df.loc[df["Updated Cycle Index"] == index]
             df_cycle = df_cycle.where(df_cycle["Spec. Cap.(mAh/g)"] > 0)
             gc.plot(df_cycle.loc[:, "Spec. Cap.(mAh/g)"], 
                     df_cycle.loc[:, "Voltage(V)"], linewidth=LINEWIDTH, label=index)
+        else:
+            df_cycle = df.loc[df["Cycle Index"] == index]
 
-        if index <= 3:
-            ### APPENDING TAPER STEPS ###
-            df_taper = df_cycle.loc[df_cycle["Step Index"] == 3]
-            df_normal_cycle = df_cycle.loc[df_cycle["Step Index"] == 2]
-            df_chg = df_cycle.loc[df_cycle["Step Index"] == 5]
-
-            taper_spec_cap = df_taper["Spec. Cap.(mAh/g)"].tolist()
-            normal_cycle_cap = df_normal_cycle["Spec. Cap.(mAh/g)"].tolist()
-            
-            spec_max =  normal_cycle_cap[-1]
-
-            total_cap = [s+spec_max for s in taper_spec_cap] ## Taper steps change specific capacity
-            
-            chg_cap = df_chg["Spec. Cap.(mAh/g)"].tolist()
-            normal_cycle_cap.extend(total_cap)
-
-            normal_cycle_cap.extend(chg_cap)
-           
-
-            ### LENGTH MISMATCH BETWEEN VOLTAGE AND SPECIFIC CAPACITY ###
-            taper_voltage = df_taper["Voltage(V)"].tolist()
-            normal_cycle_voltage = df_normal_cycle["Voltage(V)"].tolist()
-
-            normal_cycle_voltage.extend(taper_voltage)
-
-            chg_voltage = df_chg["Voltage(V)"].tolist()
-            normal_cycle_voltage.extend(chg_voltage)
-            
-            
-            normal_cycle_voltage = np.ma.masked_outside(normal_cycle_voltage,(MAX_POTENTIAL-0.001), (MIN_POTENTIAL+0.001)) 
-            normal_cycle_cap = np.array(normal_cycle_cap)
-            normal_cycle_cap = np.ma.masked_where(normal_cycle_cap < 0.05, normal_cycle_cap)
-
-
-            gc.plot(normal_cycle_cap, normal_cycle_voltage, linewidth=LINEWIDTH, label=index)
-           
-
-            
-            
-            
-
-            
+            df_cycle = df_cycle.where(df_cycle["Spec. Cap.(mAh/g)"] > 0)
+            gc.plot(df_cycle.loc[:, "Spec. Cap.(mAh/g)"], 
+                    df_cycle.loc[:, "Voltage(V)"], linewidth=LINEWIDTH, label=index)
     
     gc.set(xlabel='Specific capacity (mAh $\\mathdefault{g^{-1}}$)', 
-            ylabel= f'Potential vs {ION}/'f'{ION}''$\\mathdefault{^+}$(V)')
+           ylabel= 'Voltage (V)')
+           #ylabel= f'Potential vs {ION}/'f'{ION}''$\\mathdefault{^+}$(V)')
     
     gc.locator_params(nbins=ntick)
     gc.set_xlim(left=0, right=GC_PLOT_RIGHT)
     gc.set_ylim([MIN_POTENTIAL, MAX_POTENTIAL])
     gc.xaxis.set_minor_locator(ticker.AutoMinorLocator(2))
     gc.yaxis.set_minor_locator(ticker.AutoMinorLocator(2))
+    
     if CATHODE:
-        gc.legend(bbox_to_anchor=(0.99, 1.03), loc=0, title='Cycle', frameon= False)
+        gc.legend(bbox_to_anchor=(0.99, 1.03), loc=1, title='Cycle', frameon= False)
     else:
         gc.legend(bbox_to_anchor=(0.99, 1.03), loc=1, title='Cycle', frameon= False)
 
-    #gc.spines['bottom'].set_linewidth(2); gc.spines['left'].set_linewidth(2); gc.spines['top'].set_linewidth(2); gc.spines['right'].set_linewidth(2)
+    gc.spines['bottom'].set_linewidth(2); gc.spines['left'].set_linewidth(2); gc.spines['top'].set_linewidth(2); gc.spines['right'].set_linewidth(2)
+
 
     #######  CPC #######
-
     n_cycles = df["Cycle Index"].iloc[-1]
- 
     
     DChg = [] # this is specific capacity just discharge
     Chg = [] # this is specific capacity just charge
 
     ### for better calculation of Coulombic efficiency
-    cap_DChg = [] # capacity for discharge
-    cap_Chg = []  # capacity of charge
+    #cap_DChg = [] # capacity for discharge
+    #cap_Chg = []  # capacity of charge
 
     resting = True if df["Step Type"].iloc[0] == "Rest" else False
 
@@ -244,38 +219,23 @@ def GC_cpc_plot_N2(df):
         ### Step index is not based on if its a reduction/oxidation process ongoing, but rather if it's the 1st, 2nd, 3rd, ..., nth step in the program. Hence, have to check if the battery is resting
         if resting:
             try:
-                df_step2 = df_cycle.loc[df_cycle["Step Index"] == 2] #CC DChg
-                df_step3 = df_cycle.loc[df_cycle["Step Index"] == 3] #taper
-                #df_step4 = df_cycle.loc[df_cycle["Step Index"] == 4] #rest
-
-                df_step5 = df_cycle.loc[df_cycle["Step Index"] == 5] #CC Chg
-                #df_step6 = df_cycle.loc[df_cycle["Step Index"] == 6]
-                #----------END OF TAPER----------#
-
-                
-                
+                df_step2 = df_cycle.loc[df_cycle["Step Index"] == 2] 
+                df_step3 = df_cycle.loc[df_cycle["Step Index"] == 3]
                 DChg.append(df_step2["Spec. Cap.(mAh/g)"].iloc[-1])
-                Chg.append(df_step5["Spec. Cap.(mAh/g)"].iloc[-1])
+                Chg.append(df_step3["Spec. Cap.(mAh/g)"].iloc[-1])
 
-                number_of_taper_steps = len(DChg)
-               
-                
+                #cap_DChg.append(df_step2["Capacity(mAh)"].iloc[-1])
+                #cap_Chg.append(df_step3["Capacity(mAh)"].iloc[-1])
 
             except IndexError:
-                df_step8 = df_cycle.loc[df_cycle["Step Index"] == 8] #CC DChg
-                #df_step9 = df_cycle.loc[df_cycle["Step Index"] == 9]
-                df_step10 = df_cycle.loc[df_cycle["Step Index"] == 10] #CC Chg
-
-                DChg.append(df_step8["Spec. Cap.(mAh/g)"].iloc[-1])
-                Chg.append(df_step10["Spec. Cap.(mAh/g)"].iloc[-1])
-              
-                
+                continue
         else:
             try:
                 df_step2 = df_cycle.loc[df_cycle["Step Index"] == 1] 
                 df_step3 = df_cycle.loc[df_cycle["Step Index"] == 2]
                 DChg.append(df_step2["Spec. Cap.(mAh/g)"].iloc[-1])
                 Chg.append(df_step3["Spec. Cap.(mAh/g)"].iloc[-1])
+
                 #cap_DChg.append(df_step2["Capacity(mAh)"].iloc[-1])
                 #cap_Chg.append(df_step3["Capacity(mAh)"].iloc[-1])
             except IndexError:
@@ -288,46 +248,52 @@ def GC_cpc_plot_N2(df):
             
     len_DChg = len(DChg)
     len_Chg = len(Chg)
-  
-    
+
     if len_Chg >= len_DChg:
         total_number_of_cycles = len_DChg
- 
     elif len_Chg <= len_DChg:
         total_number_of_cycles = len_Chg
         DChg.pop(-1)
-
     elif len_Chg == len_DChg:
         total_number_of_cycles = len_DChg
-
     else:
         total_number_of_cycles = len_DChg
-    
 
 
     print("Total number of cycles", total_number_of_cycles)    
     cycle_number = [x for x in range(1, total_number_of_cycles + 1)]
 
-    cpc.scatter(cycle_number, DChg, c="k", marker="o")
-    cpc.scatter(cycle_number, Chg, edgecolors="k", facecolors="None", marker="o")
+    if CATHODE:
+        cpc.scatter(cycle_number, Chg, c="k", marker="o")
+        cpc.scatter(cycle_number, DChg, edgecolors="k", facecolors="None", marker="o")
+        coulombic_efficiency = [(charge/discharge)*100 for charge, discharge in zip(Chg, DChg)]
+    else:
+        cpc.scatter(cycle_number, DChg, c="k", marker="o")
+        cpc.scatter(cycle_number, Chg, edgecolors="k", facecolors="None", marker="o")
+        coulombic_efficiency = [(charge/discharge)*100 for charge, discharge in zip(Chg, DChg)]
 
     co = cpc.twinx()
 
-    coulombic_efficiency = [(charge/discharge)*100 for charge, discharge in zip(Chg, DChg)]
+    
     co.scatter(cycle_number, coulombic_efficiency, c="g", marker="^")
 
-    co.set_ylim([70, 105]); co.set_ylabel("Coulombic efficiency (%)", c="g")
+    co.set_ylim([CO_BOTTOM, CO_TOP]); co.set_ylabel("Coulombic efficiency (%)", c="g")
+    co.locator_params(nbins=ntick)
     co.yaxis.set_minor_locator(ticker.AutoMinorLocator(2))
     co.tick_params(axis='y', colors='green')
+    cpc.locator_params(nbins=5)
 
     cpc.set_xlim(left=0, right=CPC_MAX)
-    cpc.set_xlabel("Cycle number (#)")   
+    cpc.set_xlabel("Cycle number")   
     cpc.set_ylim(bottom=0, top=GC_PLOT_RIGHT)
     cpc.set_ylabel('Specific capacity (mAh $\\mathdefault{g^{-1}}$)')
+    cpc.xaxis.set_minor_locator(ticker.AutoMinorLocator(2))
     cpc.yaxis.set_minor_locator(ticker.AutoMinorLocator(2))
+    cpc.spines['bottom'].set_linewidth(2); cpc.spines['left'].set_linewidth(2); cpc.spines['top'].set_linewidth(2); cpc.spines['right'].set_linewidth(2)
 
     fig.savefig(f'{DEST_FOLDER}/{BAT_ID}_GC_cpc.png', dpi=DPI, bbox_inches='tight')
     print("GC and cpc plotted")
+    plt.show()
 
 
 def GC_cpc_plot_N1(voltage, specific_capacity, cyc1, cycle_number, discharge, charge, coulombic_efficiency):
