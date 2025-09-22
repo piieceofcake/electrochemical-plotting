@@ -9,9 +9,11 @@ e.g. fun.neware_version(YOUR_FILE)
 
 --------------------------------------------------------
 GitHub 13.12.2024
+    update 1: 22.09.2025
 
 Contributors:
-	Amalie Skurtveit (amalie.skurtveit@kjemi.uio.no)
+	Amalie Skurtveit (amalie.skurtveit@kjemi.uio.no), 
+    Magnus Lid Andresen
 ---------------------------------------------------------
 """
 
@@ -200,7 +202,34 @@ def neware_version(file):
 
     return datatype
 
+def replace_cycle_index_N2(df):
+    """
+    Function to replace "Cycle Index" for cathode cells in order to count the cycles correctly
+    A full cycle should correspond to one "CC Chg" and one "CC DChg"
 
+    Parameters
+    ----------------------
+    df : filtered Neware2 pandas DataFrame
+
+    Returns
+    ---------------
+    df : new pandas DataFrame with updated Cycle Indices
+    """
+    import numpy as np
+    import pandas as pd
+    length = df["Cycle Index"].iloc[-1]
+    # for i in range(0, length):
+    #     # if df["Step Index"] == 3:
+    #     #     df["Cycle Index"] = df["Cycle Index"].apply(lambda x: x-1)
+
+    # df["Cycle Index"] = df.apply(
+    #     lambda x: int(x-1) if x["Step Index"] == 3 else x["Cycle Index"]) 
+    #     #axis=1, result_type='broadcast')
+
+    df["Updated Cycle Index"] = np.where(df["Step Index"] == 3, df["Cycle Index"]-1, df["Cycle Index"])
+    
+    
+    return df
 
 ### OLD FUNCTIONS THANT MIGHT BE IN USE IN SOME SCRIPTS, INCLUDED IN CASE OF TROUBLES ###
 def process_neware1_data(data):
@@ -288,9 +317,6 @@ def process_neware2_data(data):
         # else:
         #     dqdv.append(float(column[23]))
 
-    
-
-        
 
     return Ewe, C, Cy, dqdv, sind, t, SI
 
