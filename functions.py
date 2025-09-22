@@ -76,7 +76,27 @@ def datatype(file, elchem=True):
         raise Exception("Filetype not supported by this program")
     
 
+### BIOLOGIC (.mpt) CHECK IF TYPE IS CV OR GC ###  
+def biologic_type(data):
+     """
+     Function to determine if Biologic data is galvanostatc cycling (GC) or cyclic voltammetry (CV)
+     
+     Parameters
+     ----------
+     data : DataFrame (df) of Biologic-type (.mpt) file
+
+     Returns
+     ----------
+     type : String: "CV" or "GC"     
+     """
     
+     if data["mode"].iloc[0] == 1:
+           type = "GC"
+     elif data["mode"].iloc[0] == 2:
+           type = "CV"
+     elif data["mode"].iloc[0] == 3:
+           type = "GITT"
+     return type    
 
 ### Cyclic voltammetry and galvanostatic cycling from Biologic ###
 def read_biologic(data, cv=False, eis=False):
@@ -167,11 +187,12 @@ def file_to_df(data):
    
     return df
 
+# CALCULATE IONS PER FORMULA UNIT ACTIVE MATERIAL THAT ARE TRANSFERRED DURING (DIS)CHARGE #
 def moles_ion(specific_capacity:list, 
               molar_mass:int, 
               F=26400):
     """
-    Calculation of number of ions electrochemically transferred during (dis)charge
+    Calculatation of electrochemically transferred Li/Na-ions per formula unit active material during (dis)charge
     
     Parameters
     ------------
@@ -181,26 +202,30 @@ def moles_ion(specific_capacity:list,
     
     Returns
     -------------
-    List of calculated number of ion transferred 
+    List of electrochemically transferred Li/Na-ions
     """
     return (specific_capacity*molar_mass)/F
 
-def neware_version(file):
-    """
-    Function to check which Neware your data is from
-    param: file: .csv file with Neware data. 
-            New Neware1 files reads as Neware2.
-    """
-    with open(file, 'r') as f:
-        lines = f.readlines()
-        try:
-            float(lines[2].split(',')[0])
-            datatype = "Neware2"
-        except ValueError:
-            datatype = "Neware1"
-    
 
-    return datatype
+def neware_step_counter(df):
+    """
+    Function to find and couple "Step Index" and "Step Type"
+
+    Parameters
+    ---------------
+    df : pandas DataFrame
+
+    Returns
+    --------------
+    dict: Dictionary of step indices coupled with their respective step types
+          e.g., {1: "Rest", 2: "CC Chg", 3: "CC DChg}
+
+    """
+    step_indices = df["Step Index"].unique().tolist()
+    step_types = df["Step Type"].unique()
+
+    return dict(zip(step_indices, step_types))
+
 
 def replace_cycle_index_N2(df):
     """
@@ -232,6 +257,22 @@ def replace_cycle_index_N2(df):
     return df
 
 ### OLD FUNCTIONS THANT MIGHT BE IN USE IN SOME SCRIPTS, INCLUDED IN CASE OF TROUBLES ###
+def neware_version(file):
+    """
+    Function to check which Neware your data is from
+    param: file: .csv file with Neware data. 
+            New Neware1 files reads as Neware2.
+    """
+    with open(file, 'r') as f:
+        lines = f.readlines()
+        try:
+            float(lines[2].split(',')[0])
+            datatype = "Neware2"
+        except ValueError:
+            datatype = "Neware1"
+    
+
+    return datatype
 def process_neware1_data(data):
     """
     Function to process Neware data
@@ -535,7 +576,7 @@ SECTION2: Functions to run with plotting of X-ray based files
 """
 ##############################################################################
 
-### X-RAY BASED FILES TO DATAFRAME ### UPDATE2024: CAN HANDLE MORE DATATYPES
+### X-RAY BASED FILES TO DATAFRAME ### UPDATE2024: CAN HANDLE MORE DATATYPES ### UPDATE2025: THIS CODE IS BUGGED!!
 def X_files_to_df(files, datatype=None, two_d=False):
     """
     Function to import X-ray based files into a pandas dataframe
