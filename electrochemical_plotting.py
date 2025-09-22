@@ -58,6 +58,7 @@ PLOT_ONLY_NEW   = False        # True if you don't want to plot already existing
 CATHODE         = False        # Full cell or cathode = True, Anode = False
 CV              = False        # Are you plotting CV data?
 COUNT_ION       = False        # Would you like to calculate how many IONS are transferred during (dis)charge?
+REPORT_CPC      = False        # Save a .csv file for capacity per cycle plotting
 
 CYCLES          = [1,2,3,5,10,20,50,100]
 CPC_MAX         = 500        # Right limit of x-axis in capacity per cycle plot (CPC)
@@ -272,9 +273,20 @@ def GC_cpc_plot_N2(df):
         cpc.scatter(cycle_number, Chg, edgecolors="k", facecolors="None", marker="o")
         coulombic_efficiency = [(charge/discharge)*100 for charge, discharge in zip(Chg, DChg)]
 
-    co = cpc.twinx()
+    if REPORT_CPC:
+        df_report = pd.DataFrame()
+        df_report["Cycle No."] = (pd.Series(cycle_number)).values
+        if CATHODE:
+            df_report["Spec.cap Chg (mAhg-1)"] = (pd.Series(DChg)).values # Chg capacity is encoded in the list called DChg.
+            df_report["Spec.cap DChg (mAhg-1)"] = (pd.Series(Chg)).values # DChg capacity is encoded in the list called Chg.
+            df_report.to_csv(f"{DEST_FOLDER}/{BAT_ID}_CPC_output.csv") 
+        else:
+            df_report["Spec.cap DChg (mAhg-1)"] = (pd.Series(DChg)).values
+            df_report["Spec.cap Chg (mAhg-1)"] = (pd.Series(Chg)).values
+            df_report.to_csv(f"{DEST_FOLDER}/{BAT_ID}_CPC_output.csv") 
 
-    
+
+    co = cpc.twinx()
     co.scatter(cycle_number, coulombic_efficiency, c="g", marker="^")
 
     co.set_ylim([CO_BOTTOM, CO_TOP]); co.set_ylabel("Coulombic efficiency (%)", c="g")

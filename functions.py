@@ -256,6 +256,7 @@ def replace_cycle_index_N2(df):
     
     return df
 
+
 ### OLD FUNCTIONS THANT MIGHT BE IN USE IN SOME SCRIPTS, INCLUDED IN CASE OF TROUBLES ###
 def neware_version(file):
     """
