@@ -1,4 +1,4 @@
-# electrochemical-plotting
+# Electrochemical Visualization Tool
 Plotting of electrochemical data from Neware and Biologic battery testers
 
 Contributors: Amalie Skurtveit, Magnus Lid Andresen, Casper Skautvedt and Eira Tiberg North
