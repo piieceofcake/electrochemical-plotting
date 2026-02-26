@@ -33,25 +33,29 @@ plt.rcParams.update({
     "figure.figsize": "12.8, 4.8",  # figure size in inches. This is twice as large as normal (6.4, 4.8)
     "figure.constrained_layout.use": True,
     "lines.markersize": 9, # marker size, in points. 6 standard. 9 for QCM
-    "xtick.direction": "in",
-    "ytick.direction": "in",
+    "xtick.direction": "out",
+    "ytick.direction": "out",
     "xtick.bottom": True,
-    "xtick.top": True,
+    "xtick.top": False,
     "xtick.minor.visible": True,
     "ytick.left": True,
     "ytick.right": False,
     "ytick.minor.visible": True,
-    "xtick.major.size": 14, # major tick size in points (3.5 default)
-    "xtick.minor.size": 8, # minor tick size in points (2 default)
-    "ytick.major.size": 14, # major tick size in points (3.5 default)
-    "ytick.minor.size": 8 # minor tick size in points (2 default)
+    "xtick.major.size": 6, # major tick size in points (3.5 default)
+    "xtick.minor.size": 4, # minor tick size in points (2 default)
+    "ytick.major.size": 8, # major tick size in points (3.5 default)
+    "ytick.minor.size": 6, # minor tick size in points (2 default)
+    "xtick.major.width": 1.5,
+    "xtick.minor.width": 1.5,
+    "ytick.major.width": 1.5,
+    "ytick.minor.width": 1.5
 })
 
 ### USER SPECIFIC PARAMETERS ###
-ELCHEM_FOLDER   = r"YOUR FOLDER PASTED HERE"
+ELCHEM_FOLDER   = r"PATH TO YOUR FOLDER  HERE"
 ELCHEM_FILETYPE = "csv"
-MIN_POTENTIAL   = 0
-MAX_POTENTIAL   = 2
+MIN_VOLTAGE     = 0            # User defined, lower limit of voltage, e.g. 0 for anode
+MAX_VOLTAGE     = 2            # User defined, upper limit of voltage, e.g., 2 for anode
 ION             = "Na"
 
 PLOT_ONLY_NEW   = False        # True if you don't want to plot already existing data in a folder
@@ -80,13 +84,13 @@ if not os.path.exists(DEST_FOLDER):
 
 # Making the color palette for plotting GC curves
 # You can change colors to whatever you would like as long as you have a hex code '#000000'
-uio_colors = ["#86A4F7", "#2EC483", "#FEA11B", "#FB6666", '#AB6548', '#509D96', '#B54477', '#5A89D4', '#84BC57', '#D06C8F', '#2C6D4E']
+color_palette = ["#991045", "#E95135", "#F99959", "#57B1AB", "#387CB7", "#524295", "#272046"]
 # Cycling through the colors automatically
-mpl.rcParams['axes.prop_cycle'] = mpl.cycler(color=uio_colors) 
+mpl.rcParams['axes.prop_cycle'] = mpl.cycler(color=color_palette) 
 cycle = [x - 1 for x in CYCLES]
     
 
-colors = uio_colors 
+colors = color_palette
 cpc_color = "k" # "k" = black, other colors: https://matplotlib.org/stable/gallery/color/named_colors.html
 
 
@@ -142,8 +146,8 @@ def CV_plot(df):
                 df_cycle.loc[:, "<I>/mA"], label=index)
     
 
-    cv.set(xlabel=f'Potential vs {ION}/'f'{ION}''$\\mathdefault{^+}$(V)', ylabel= 'Current (mA)')
-    cv.set_xlim(left=MIN_POTENTIAL, right=MAX_POTENTIAL)
+    cv.set(xlabel=f'Voltage (V)', ylabel= 'Current (mA)')
+    cv.set_xlim(left=MIN_VOLTAGE, right=MAX_VOLTAGE)
     cv.set_ylim(bottom=-2, top=2)
     
     cv.xaxis.set_minor_locator(ticker.AutoMinorLocator(2))
@@ -185,11 +189,11 @@ def GC_cpc_plot_N2(df):
     
     gc.set(xlabel='Specific capacity (mAh $\\mathdefault{g^{-1}}$)', 
            ylabel= 'Voltage (V)')
-           #ylabel= f'Potential vs {ION}/'f'{ION}''$\\mathdefault{^+}$(V)')
+           
     
     gc.locator_params(nbins=ntick)
     gc.set_xlim(left=0, right=GC_PLOT_RIGHT)
-    gc.set_ylim([MIN_POTENTIAL, MAX_POTENTIAL])
+    gc.set_ylim([MIN_VOLTAGE, MAX_VOLTAGE])
     gc.xaxis.set_minor_locator(ticker.AutoMinorLocator(2))
     gc.yaxis.set_minor_locator(ticker.AutoMinorLocator(2))
     
@@ -229,7 +233,13 @@ def GC_cpc_plot_N2(df):
                 #cap_Chg.append(df_step3["Capacity(mAh)"].iloc[-1])
 
             except IndexError:
-                continue
+                try:
+                    df_step5 = df_cycle.loc[df_cycle["Step Index"] == 5] 
+                    df_step6 = df_cycle.loc[df_cycle["Step Index"] == 6] 
+                    DChg.append(df_step5["Spec. Cap.(mAh/g)"].iloc[-1])
+                    Chg.append(df_step6["Spec. Cap.(mAh/g)"].iloc[-1])
+                except IndexError:
+                    continue
         else:
             try:
                 df_step2 = df_cycle.loc[df_cycle["Step Index"] == 1] 
@@ -315,7 +325,7 @@ def GC_cpc_plot_N1(voltage, specific_capacity, cyc1, cycle_number, discharge, ch
     plt.rc('lines', lw= LINEWIDTH)
 
     
-    voltage= np.array(voltage); voltage = np.ma.masked_outside(voltage, (MIN_POTENTIAL-0.001), (MAX_POTENTIAL+0.001)) #masking data outside of the voltage window to suppress lines 
+    voltage= np.array(voltage); voltage = np.ma.masked_outside(voltage, (MIN_VOLTAGE-0.001), (MAX_VOLTAGE+0.001)) #masking data outside of the voltage window to suppress lines 
     specific_capacity = np.array(specific_capacity); specific_capacity = np.ma.masked_where(specific_capacity < 0.05, specific_capacity)
    
     fig, (ax1, ax2) = plt.subplots(1, 2, constrained_layout=True)
@@ -330,7 +340,7 @@ def GC_cpc_plot_N1(voltage, specific_capacity, cyc1, cycle_number, discharge, ch
 
     ax1.set(xlabel='Specific capacity (mAh $\\mathdefault{g^{-1}}$)', ylabel= f'Potential vs {ION}/'f'{ION}''$\\mathdefault{^+}$(V)')
     ax1.set_xlim(left=0, right=GC_PLOT_RIGHT)
-    ax1.set_ylim([MIN_POTENTIAL, MAX_POTENTIAL])
+    ax1.set_ylim([MIN_VOLTAGE, MAX_VOLTAGE])
     
     ax1.xaxis.set_minor_locator(ticker.AutoMinorLocator(2))
     ax1.yaxis.set_minor_locator(ticker.AutoMinorLocator(2))
@@ -398,7 +408,7 @@ def GC_cpc_plot_Biologic(df, active_mass):
 
     gc.set(xlabel=f'Potential vs {ION}/'f'{ION}''$\\mathdefault{^+}$(V)', ylabel= 'Current (mA)')
     gc.set_xlim(left=0, right=GC_PLOT_RIGHT)
-    gc.set_ylim(bottom=MIN_POTENTIAL, top=MAX_POTENTIAL)
+    gc.set_ylim(bottom=MIN_VOLTAGE, top=MAX_VOLTAGE)
     
     gc.xaxis.set_minor_locator(ticker.AutoMinorLocator(2))
     gc.yaxis.set_minor_locator(ticker.AutoMinorLocator(2))
@@ -522,7 +532,7 @@ def plot_dqdv(voltage, dqdv, valid_cycles, cyc1):
         # Plot the smoothed data for the selected cycle
         ax.plot(cycle_voltage, smoothed_dqdv, label=f"{cycle_number}")
     
-    ax.set(xlim=[MIN_POTENTIAL, MAX_POTENTIAL], xlabel= f'Potential vs {ION}/'f'{ION}''$\\mathdefault{^+}$(V)',
+    ax.set(xlim=[MIN_VOLTAGE, MAX_VOLTAGE], xlabel= f'Potential vs {ION}/'f'{ION}''$\\mathdefault{^+}$(V)',
         ylabel= 'dQ $\\mathdefault{dV^{-1}}$ (mAh $\\mathdefault{Vg^{-1}}}$)')
     
     ax.locator_params(nbins=ntick)
@@ -578,7 +588,7 @@ def plot_moles_ion(df):
     
    
 
-        voltage = np.ma.masked_outside(voltage, (MAX_POTENTIAL-0.001), (MIN_POTENTIAL+0.001))
+        voltage = np.ma.masked_outside(voltage, (MAX_VOLTAGE-0.001), (MIN_VOLTAGE+0.001))
         specific_capacity = np.ma.masked_less(specific_capacity, 0.001)
         x_Na = np.ma.masked_outside(x_Na, (x_Na.max()-0.1), (x_Na.min()- 10))
 
@@ -591,7 +601,7 @@ def plot_moles_ion(df):
 
     ax.set(xlabel="Number of Na (#)", ylabel=f'Potential vs {ION}/'f'{ION}''$\\mathdefault{^+}$(V)')
     ax.set_xlim(0, 15)
-    ax.set_ylim([MIN_POTENTIAL, MAX_POTENTIAL])
+    ax.set_ylim([MIN_VOLTAGE, MAX_VOLTAGE])
     ax.locator_params(nbins=4)
     ax.yaxis.set_minor_locator(ticker.AutoMinorLocator(2))
 
