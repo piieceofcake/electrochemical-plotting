@@ -54,10 +54,9 @@ plt.rcParams.update({
 
 ### USER SPECIFIC PARAMETERS ###
 ELCHEM_FOLDER   = r"PATH TO YOUR FOLDER  HERE"
-ELCHEM_FILETYPE = "csv"
+ELCHEM_FILETYPE = "csv"        # .csv for Neware files or .mpt for Biologic files
 MIN_VOLTAGE     = 0            # User defined, lower limit of voltage, e.g. 0 for anode
 MAX_VOLTAGE     = 2            # User defined, upper limit of voltage, e.g., 2 for anode
-ION             = "Na"
 
 PLOT_ONLY_NEW   = False        # True if you don't want to plot already existing data in a folder
 CATHODE         = False        # Full cell or cathode = True, Anode = False
