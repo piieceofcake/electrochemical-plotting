@@ -13,11 +13,12 @@ from IPython.display import display
 """
 Electrochemical visualization tool 2024
 
-This code is for plotting .csv and .mpt files extracted from Neware and Biologic battery testers, respectively.
+Script for plotting .csv and .mpt files from Neware and Biologic battery testers, respectively.
 Change the parameters underneath to fit your data
 
 GitHub 1st commit 13.12.2024
     update 1: 22.09.2025
+    update 2: 26.02.2026
 
 Contributors:
 	Amalie Skurtveit (amalie.skurtveit@kjemi.uio.no)
@@ -26,7 +27,7 @@ Contributors:
     Magnus Lid Andresen
 """
 
-### Standard format of figures ##
+### STANDARD FORMAT FOR FIGURES ##
 plt.rcParams.update({
     "font.family": "Arial",
     "font.size": 12,
@@ -82,14 +83,14 @@ if not os.path.exists(DEST_FOLDER):
     os.makedirs(DEST_FOLDER)
 
 
-# Making the color palette for plotting GC curves
+### COLOR PALETTE ###
 # You can change colors to whatever you would like as long as you have a hex code '#000000'
 color_palette = ["#991045", "#E95135", "#F99959", "#57B1AB", "#387CB7", "#524295", "#272046"]
+
 # Cycling through the colors automatically
 mpl.rcParams['axes.prop_cycle'] = mpl.cycler(color=color_palette) 
 cycle = [x - 1 for x in CYCLES]
     
-
 colors = color_palette
 cpc_color = "k" # "k" = black, other colors: https://matplotlib.org/stable/gallery/color/named_colors.html
 
