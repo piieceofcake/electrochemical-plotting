@@ -23,7 +23,7 @@ GitHub 1st commit 13.12.2024
 Contributors:
 	Amalie Skurtveit (amalie.skurtveit@kjemi.uio.no)
     Casper Skautvedt (casper.skautvedt@smn.uio.no)
-    Erlend Tiberg North (e.t.north@smn.uio.no)
+    Eira Tiberg North (e.t.north@smn.uio.no)
     Magnus Lid Andresen
 """
 
